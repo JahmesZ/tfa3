@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ledger POS · Static Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0b09;--panel:#16130f;--line:#2b2418;--gold:#c9a24b;--text:#e8e0d0;--mute:#8d826d;--bad:#e2725b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 'JetBrains Mono',monospace}
+header{display:flex;justify-content:space-between;align-items:center;padding:18px 32px;border-bottom:1px solid var(--line)}
+.brand{font:800 26px 'Playfair Display',serif;color:var(--gold)}
+a{color:var(--gold);cursor:pointer;text-decoration:none}nav a{margin-left:22px;color:var(--text)}nav a:hover{color:var(--gold)}
+.demo{margin:0;padding:8px 32px;background:var(--panel);color:var(--mute);font-size:13px;border-bottom:1px solid var(--line)}
+main{max-width:860px;margin:36px auto;padding:0 20px}
+h1{font:600 34px 'Playfair Display',serif;margin:0 0 20px}.bar{display:flex;justify-content:space-between;align-items:center}
+.btn{background:var(--gold);color:#120e07;border:0;padding:9px 18px;font:600 14px 'JetBrains Mono',monospace;cursor:pointer;border-radius:3px}
+table{width:100%;border-collapse:collapse;background:var(--panel)}th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:400}
+form{background:var(--panel);border:1px solid var(--line);padding:26px;max-width:480px}label{display:block;margin-bottom:18px;color:var(--mute)}
+input{display:block;width:100%;margin-top:6px;padding:10px;background:var(--bg);color:var(--text);border:1px solid var(--line);font:inherit;border-radius:3px}
+input:focus{outline:2px solid var(--gold)}input.bad{border-color:var(--bad)}small{display:block;color:var(--bad);margin-top:4px}
+.flash{border-left:3px solid var(--gold);background:var(--panel);padding:10px 14px}
+.av{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--gold);display:block}.av.big{width:96px;height:96px;margin:0 0 18px}
+form .btn{margin-right:14px}
+</style></head><body>
+<header><a class="brand" href="#/customers">Ledger POS</a><nav><a href="#/customers">Customers</a><a href="#/users">Users</a></nav></header>
+<p class="demo">Static demo for GitHub Pages. Data lives in this browser only. <a id="reset">Reset data</a></p>
+<main id="app"></main>
+<script>
+const K='tfa3-demo',PH="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1d1811"/><circle cx="50" cy="38" r="18" fill="#c9a24b"/><path d="M14 92c4-24 20-32 36-32s32 8 36 32z" fill="#c9a24b"/></svg>');
+const seed=()=>({customers:[{id:1,full_name:'Maria Santos',email:'maria@example.com',phone:'0917 123 4567'},{id:2,full_name:'Juan dela Cruz',email:'juan@example.com',phone:'0928 555 0192'},{id:3,full_name:'Angela Reyes',email:'angela@example.com',phone:''}],
+users:[{id:1,username:'admin',full_name:'Store Administrator',avatar:''},{id:2,username:'cashier1',full_name:'Paolo Garcia',avatar:''},{id:3,username:'cashier2',full_name:'Bea Villanueva',avatar:''}]});
+let db;try{db=JSON.parse(localStorage.getItem(K))}catch{}db=db||seed();
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(db))}catch{}};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const F={customers:{title:'Customer',fields:{full_name:'Full name',email:'Email',phone:'Phone (optional)'}},users:{title:'User',fields:{username:'Username',full_name:'Full name'}}};
+let flash='',sticky=null;
+const $=document.getElementById('app');
+function validate(t,id,d){const e={},L=d.full_name.trim().length;
+ if(!L)e.full_name='The Full name field is required.';else if(L<2)e.full_name='The Full name field must be at least 2 characters in length.';
+ if(t==='customers'){if(!d.email.trim())e.email='The Email field is required.';else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email))e.email='The Email field must contain a valid email address.'}
+ else{const u=d.username.trim();if(!u)e.username='The Username field is required.';else if(u.length<3)e.username='The Username field must be at least 3 characters in length.';
+  else if(!/^[\w-]+$/.test(u))e.username='The Username field may only contain alphanumeric characters, underscores, and dashes.';
+  else if(db.users.some(x=>x.username===u&&x.id!==id))e.username='The Username field must contain a unique value.'}
+ return e}
+const thumb=f=>new Promise(r=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=c.height=150;const s=Math.min(i.width,i.height);c.getContext('2d').drawImage(i,(i.width-s)/2,(i.height-s)/2,s,s,0,0,150,150);r(c.toDataURL('image/jpeg',.85))};i.src=URL.createObjectURL(f)});
+function list(t){const rows=[...db[t]].reverse();
+ $.innerHTML=`${flash?`<p class="flash">${esc(flash)}</p>`:''}<div class="bar"><h1>${t==='users'?'User accounts':'Customers'}</h1><a class="btn" href="#/${t}/new">New ${F[t].title.toLowerCase()}</a></div><table>`+
+ (t==='users'?`<tr><th></th><th>Username</th><th>Full name</th><th></th></tr>`+rows.map(r=>`<tr><td><img class="av" alt="" src="${r.avatar||PH}"></td><td>${esc(r.username)}</td><td>${esc(r.full_name)}</td><td><a href="#/users/${r.id}/edit">Edit</a></td></tr>`).join('')
+ :`<tr><th>ID</th><th>Full name</th><th>Email</th><th>Phone</th><th></th></tr>`+rows.map(r=>`<tr><td>${r.id}</td><td>${esc(r.full_name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td><a href="#/customers/${r.id}/edit">Edit</a></td></tr>`).join(''))+'</table>';flash=''}
+function form(t,id){const row=id?db[t].find(x=>x.id===id):null;if(id&&!row)return location.hash='#/'+t;
+ const s=sticky&&sticky.t===t&&sticky.id===id?sticky:null;sticky=null;const v=s?s.v:row||{},e=s?s.e:{};
+ $.innerHTML=`<h1>${row?'Edit':'New'} ${F[t].title.toLowerCase()}</h1><form novalidate>`+Object.entries(F[t].fields).map(([k,l])=>`<label>${l}<input name="${k}" value="${esc(v[k])}" class="${e[k]?'bad':''}">${e[k]?`<small>${esc(e[k])}</small>`:''}</label>`).join('')+
+ (t==='users'&&row?`<label>Profile picture (JPG or PNG, max 2MB)<input type="file" name="avatar" accept=".jpg,.jpeg,.png" class="${e.avatar?'bad':''}">${e.avatar?`<small>${esc(e.avatar)}</small>`:''}</label><img class="av big" alt="" src="${row.avatar||PH}">`:'')+
+ `<button class="btn">${row?'Save changes':'Add '+F[t].title.toLowerCase()}</button><a href="#/${t}">Cancel</a></form>`;
+ $.querySelector('form').onsubmit=async ev=>{ev.preventDefault();const fd=new FormData(ev.target),d={};for(const k in F[t].fields)d[k]=(fd.get(k)||'').trim();
+  const e=validate(t,id,d),f=fd.get('avatar');
+  if(f&&f.size){if(!['image/jpeg','image/png'].includes(f.type))e.avatar='The avatar field must be a JPG or PNG image.';else if(f.size>2*1024*1024)e.avatar='The avatar field cannot exceed 2048 KB in size.'}
+  if(Object.keys(e).length){sticky={t,id,v:d,e};return form(t,id)}
+  if(f&&f.size)d.avatar=await thumb(f);
+  if(row)Object.assign(row,d);else db[t].push({id:Math.max(0,...db[t].map(x=>x.id))+1,avatar:'',phone:'',...d});
+  save();flash=`${F[t].title} ${row?'updated':'added'}.`;location.hash='#/'+t}}
+function route(){const [t,a,b]=location.hash.slice(2).split('/');if(!F[t])return location.hash='#/customers';
+ a==='new'?form(t,null):b==='edit'?form(t,+a):list(t)}
+addEventListener('hashchange',route);
+document.getElementById('reset').onclick=()=>{db=seed();save();flash='Demo data reset.';location.hash='#/customers';route()};
+route();
+</script></body></html>
